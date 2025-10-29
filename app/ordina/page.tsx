@@ -128,6 +128,7 @@ export default function OrderPage() {
       item_id: item.id,
       qty: item.qty,
       price: item.price,
+      name: item.name,
     }))
 
     const body = {

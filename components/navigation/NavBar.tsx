@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -11,8 +12,9 @@ export default function NavBar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-2xl font-bold text-gray-900">
-              🍕 Pizzeria Milano
+            <Link href="/" aria-label="Vai alla Home" className="flex items-center gap-2">
+              <Image src="/favicon.svg" width={32} height={32} alt="Logo Pizzeria Caputo" />
+              <span className="font-semibold text-lg text-gray-900">Pizzeria Caputo</span>
             </Link>
           </div>
 

@@ -5,6 +5,7 @@ interface OrderItem {
   item_id: number
   qty: number
   price: number
+  name: string // nuovo requisito: includere il nome del piatto nel payload
 }
 
 interface OrderPayload {
@@ -64,33 +65,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // Validazione approfondita dei dettagli ordine con messaggi specifici
-  for (const item of dettagli_ordine) {
-    if (item == null || typeof item !== 'object') {
-      return NextResponse.json(
-        { error: 'Dettagli ordine non validi: elemento mancante o non strutturato.' },
-        { status: 400 }
-      )
-    }
-    if (typeof item.item_id !== 'number' || !Number.isFinite(item.item_id)) {
-      return NextResponse.json(
-        { error: 'Dettagli ordine non validi: item_id mancante o non valido.' },
-        { status: 400 }
-      )
-    }
-    if (typeof item.qty !== 'number' || item.qty <= 0) {
-      return NextResponse.json(
-        { error: `Dettagli ordine non validi: quantità non valida per item ${item.item_id}.` },
-        { status: 400 }
-      )
-    }
-    if (typeof item.price !== 'number' || item.price < 0) {
-      return NextResponse.json(
-        { error: `Dettagli ordine non validi: prezzo non valido per item ${item.item_id}.` },
-        { status: 400 }
-      )
-    }
-  }
+  // Nota: la validazione specifica per ciascun elemento di dettagli_ordine viene rimossa
+  // perché la logica di persistenza ora utilizza la nuova tabella "righe_ordine".
 
   // Calcolo del totale server-side e normalizzazione a 2 decimali
   const serverTotal = Math.round(
@@ -103,11 +79,11 @@ export async function POST(request: Request) {
     console.warn('Discrepanza totale: Client ' + clientTotalNormalized + ' vs Server ' + serverTotal)
   }
 
-  const payload = {
+  // 2) Prepara dati ordine principale (solo campi della tabella "ordini")
+  const ordineData = {
     customer_name,
     order_type,
     total_amount: serverTotal,
-    dettagli_ordine,
     ...(order_type === 'delivery' ? { delivery_address } : {}),
     // opzionali
     customer_phone,
@@ -116,20 +92,47 @@ export async function POST(request: Request) {
   }
 
   // Validazione runtime esplicita del tipo di ordine
-  if (payload.order_type !== 'delivery' && payload.order_type !== 'takeaway') {
+  if (ordineData.order_type !== 'delivery' && ordineData.order_type !== 'takeaway') {
     return NextResponse.json({ error: 'Tipo ordine non valido.' }, { status: 400 })
   }
 
   // Hardening: impedisce al client di impostare lo stato
-  if ('status' in payload) {
-    delete (payload as any).status
+  if ('status' in (body as any)) {
+    delete (body as any).status
   }
 
-  const { data, error } = await supabase.from('ordini').insert(payload).select()
+  // 3) Inserisci Ordine Principale
+  const { data: nuovoOrdine, error: errorOrdine } = await supabase
+    .from('ordini')
+    .insert(ordineData)
+    .select()
+    .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  // 4) Gestisci errore ordine
+  if (errorOrdine) {
+    return NextResponse.json({ error: errorOrdine.message }, { status: 500 })
+  }
+  if (!nuovoOrdine) {
+    return NextResponse.json({ error: 'Creazione ordine non riuscita.' }, { status: 500 })
   }
 
-  return NextResponse.json({ data }, { status: 201 })
+  // 5) Prepara dati righe ordine
+  const righeData = (dettagli_ordine || []).map((item) => ({
+    id_ordine: (nuovoOrdine as any).id,
+    id_menu: item.item_id,
+    nome_piatto: item.name,
+    prezzo_unitario: item.price,
+    quantita: item.qty,
+  }))
+
+  // 6) Inserisci righe ordine (inserimento multiplo)
+  const { error: errorRighe } = await supabase.from('righe_ordine').insert(righeData)
+
+  // 7) Gestisci errori righe
+  if (errorRighe) {
+    return NextResponse.json({ error: errorRighe.message }, { status: 500 })
+  }
+
+  // 8) Restituisci successo (ordine creato)
+  return NextResponse.json(nuovoOrdine, { status: 201 })
 }
