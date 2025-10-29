@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const siteUrl = 'https://www.nomepizzeriamilano.it'; // Placeholder
+const siteUrl = 'https://pizzeria-caputo.vercel.app'; // Production URL
 
 export default function robots(): MetadataRoute.Robots {
   return {

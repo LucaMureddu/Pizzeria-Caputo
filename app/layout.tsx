@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 // Placeholder: sostituisci con l'URL di produzione reale
-const siteUrl = "https://www.nomepizzeriamilano.it";
+const siteUrl = "https://pizzeria-caputo.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
