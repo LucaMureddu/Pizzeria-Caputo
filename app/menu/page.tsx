@@ -39,7 +39,21 @@ export default function MenuPage() {
   ]
 
   const filteredItems = selectedCategory === 'tutti'
-    ? menuItems
+    ? (() => {
+        // Ordina per categoria nella vista "Tutti"
+        const categoryOrder: Record<string, number> = {
+          antipasto: 1,
+          pizza: 2,
+          dolce: 3,
+          bevanda: 4,
+        }
+        const sorted = [...menuItems].sort((a, b) => {
+          const orderA = categoryOrder[a.category] ?? 99
+          const orderB = categoryOrder[b.category] ?? 99
+          return orderA - orderB
+        })
+        return sorted
+      })()
     : menuItems.filter((item) => item.category === selectedCategory)
 
   return (

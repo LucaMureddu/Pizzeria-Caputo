@@ -178,7 +178,21 @@ export default function OrderPage() {
               {/** Filtro lato client */}
               {(() => {
                 const filteredMenu = selectedCategory === 'tutti'
-                  ? menu
+                  ? (() => {
+                      // Ordina per categoria nella vista "Tutti"
+                      const categoryOrder: Record<string, number> = {
+                        antipasto: 1,
+                        pizza: 2,
+                        dolce: 3,
+                        bevanda: 4,
+                      }
+                      const sorted = [...menu].sort((a, b) => {
+                        const orderA = categoryOrder[a.category] ?? 99
+                        const orderB = categoryOrder[b.category] ?? 99
+                        return orderA - orderB
+                      })
+                      return sorted
+                    })()
                   : menu.filter(item => item.category === selectedCategory)
                 return (
                   <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 motion-safe:transition-opacity motion-safe:duration-300 motion-safe:ease-out-quart motion-reduce:transition-none ${gridVisible ? 'opacity-100' : 'opacity-0'}`}>
